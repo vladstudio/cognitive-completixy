@@ -109,11 +109,14 @@ function showHints() {
   const errorDecorations: vscode.DecorationOptions[] = [];
 
   for (const contribution of analysis.contributions) {
+    const lineText = editor.document.lineAt(contribution.line).text;
+    const lineEnd = lineText.length;
+    
     const range = new vscode.Range(
       contribution.line,
-      contribution.column,
+      lineEnd,
       contribution.line,
-      contribution.column
+      lineEnd
     );
 
     const decoration: vscode.DecorationOptions = {
