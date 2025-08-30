@@ -1,40 +1,87 @@
+export interface ComplexityContribution {
+  line: number;
+  column: number;
+  contribution: number;
+  description: string;
+}
+
 export function calculateCognitiveComplexity(code: string): number {
+  return analyzeCognitiveComplexity(code).totalComplexity;
+}
+
+export function analyzeCognitiveComplexity(code: string): {
+  totalComplexity: number;
+  contributions: ComplexityContribution[];
+} {
   let complexity = 0;
   let nestingLevel = 0;
+  const contributions: ComplexityContribution[] = [];
+  const lines = code.split('\n');
   
-  const tokens = tokenize(code);
+  const tokens = tokenizeWithPositions(code);
   
   for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-    const prevToken = tokens[i - 1];
+    const { token, line, column } = tokens[i];
+    const prevToken = tokens[i - 1]?.token;
+    let contribution = 0;
+    let description = '';
     
     switch (token) {
       case 'if':
       case 'while':
       case 'for':
       case 'do':
-        complexity += 1 + nestingLevel;
+        contribution = 1 + nestingLevel;
+        description = nestingLevel === 0 
+          ? `+${contribution} ${token} statement`
+          : `+${contribution} nested ${token} statement`;
+        complexity += contribution;
         break;
         
       case 'else':
-        if (prevToken !== '}') complexity += 1 + nestingLevel;
+        if (prevToken !== '}') {
+          contribution = 1 + nestingLevel;
+          description = nestingLevel === 0 
+            ? `+${contribution} else statement`
+            : `+${contribution} nested else statement`;
+          complexity += contribution;
+        }
         break;
         
       case 'catch':
-        complexity += 1 + nestingLevel;
+        contribution = 1 + nestingLevel;
+        description = nestingLevel === 0 
+          ? `+${contribution} catch block`
+          : `+${contribution} nested catch block`;
+        complexity += contribution;
         break;
         
       case 'switch':
-        complexity += 1 + nestingLevel;
+        contribution = 1 + nestingLevel;
+        description = nestingLevel === 0 
+          ? `+${contribution} switch statement`
+          : `+${contribution} nested switch statement`;
+        complexity += contribution;
         break;
         
       case 'case':
-        if (nestingLevel > 0) complexity += 1;
+        if (nestingLevel > 0) {
+          contribution = 1;
+          description = `+${contribution} case in nested switch`;
+          complexity += contribution;
+        }
         break;
         
       case '&&':
+        contribution = 1;
+        description = `+${contribution} && operator`;
+        complexity += contribution;
+        break;
+        
       case '||':
-        complexity += 1;
+        contribution = 1;
+        description = `+${contribution} || operator`;
+        complexity += contribution;
         break;
         
       case '{':
@@ -45,20 +92,51 @@ export function calculateCognitiveComplexity(code: string): number {
         if (nestingLevel > 0) nestingLevel--;
         break;
     }
+    
+    if (contribution > 0) {
+      contributions.push({ line, column, contribution, description });
+    }
   }
   
-  return complexity;
+  return { totalComplexity: complexity, contributions };
 }
 
-function tokenize(code: string): string[] {
-  return code
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/.*$/gm, '')
-    .replace(/"[^"]*"/g, '')
-    .replace(/'[^']*'/g, '')
-    .replace(/`[^`]*`/g, '')
-    .match(/\b(?:if|else|while|for|do|switch|case|catch|function)\b|[{}]|&&|\|\|/g) || [];
+interface TokenWithPosition {
+  token: string;
+  line: number;
+  column: number;
 }
+
+function tokenizeWithPositions(code: string): TokenWithPosition[] {
+  const tokens: TokenWithPosition[] = [];
+  const lines = code.split('\n');
+  const regex = /\b(?:if|else|while|for|do|switch|case|catch|function)\b|[{}]|&&|\|\|/g;
+  
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    let line = lines[lineIndex];
+    
+    // Remove comments and strings for this line
+    line = line
+      .replace(/\/\*.*?\*\//g, '')
+      .replace(/\/\/.*$/, '')
+      .replace(/"[^"]*"/g, '')
+      .replace(/'[^']*'/g, '')
+      .replace(/`[^`]*`/g, '');
+    
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      tokens.push({
+        token: match[0],
+        line: lineIndex,
+        column: match.index
+      });
+    }
+    regex.lastIndex = 0; // Reset for next line
+  }
+  
+  return tokens;
+}
+
 
 function isNestingToken(token: string): boolean {
   return ['if', 'while', 'for', 'do', 'switch', 'catch', 'function'].includes(token);
