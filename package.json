@@ -3,10 +3,23 @@
   "displayName": "Cognitive Complexity",
   "description": "Display cognitive complexity of active file in status bar",
   "version": "0.0.1",
+  "publisher": "Vladstudio",
+  "author": {
+    "name": "Vlad Gerasimov",
+    "email": "vlad@vlad.studio"
+  },
+  "license": "MIT",
+  "homepage": "https://vlad.studio",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": ["cognitive", "complexity", "analysis", "code quality", "metrics", "javascript", "typescript", "linter"],
+  "icon": "logo.png",
   "engines": {
     "vscode": "^1.74.0"
   },
-  "categories": ["Other"],
+  "categories": ["Linters"],
   "activationEvents": ["onLanguage:javascript", "onLanguage:typescript"],
   "main": "./out/extension.js",
   "contributes": {
