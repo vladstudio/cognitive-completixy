@@ -39,11 +39,10 @@ export function analyzeCognitiveComplexity(code: string): {
         break;
         
       case 'else':
-        if (prevToken !== '}') {
-          contribution = 1 + nestingLevel;
-          description = nestingLevel === 0 
-            ? `+${contribution} else statement`
-            : `+${contribution} nested else statement`;
+        const nextToken = tokens[i + 1]?.token;
+        if (nextToken !== 'if') {
+          contribution = 1;
+          description = `+${contribution} else statement`;
           complexity += contribution;
         }
         break;
@@ -65,11 +64,6 @@ export function analyzeCognitiveComplexity(code: string): {
         break;
         
       case 'case':
-        if (nestingLevel > 0) {
-          contribution = 1;
-          description = `+${contribution} case in nested switch`;
-          complexity += contribution;
-        }
         break;
         
       case '&&':
@@ -81,6 +75,12 @@ export function analyzeCognitiveComplexity(code: string): {
       case '||':
         contribution = 1;
         description = `+${contribution} || operator`;
+        complexity += contribution;
+        break;
+        
+      case '?':
+        contribution = 1;
+        description = `+${contribution} ternary operator`;
         complexity += contribution;
         break;
         
@@ -110,7 +110,7 @@ interface TokenWithPosition {
 function tokenizeWithPositions(code: string): TokenWithPosition[] {
   const tokens: TokenWithPosition[] = [];
   const lines = code.split('\n');
-  const regex = /\b(?:if|else|while|for|do|switch|case|catch|function)\b|[{}]|&&|\|\|/g;
+  const regex = /\b(?:if|else|while|for|do|switch|case|catch|function)\b|[{}]|&&|\|\||\?|:/g;
   
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     let line = lines[lineIndex];
@@ -139,5 +139,5 @@ function tokenizeWithPositions(code: string): TokenWithPosition[] {
 
 
 function isNestingToken(token: string): boolean {
-  return ['if', 'while', 'for', 'do', 'switch', 'catch', 'function'].includes(token);
+  return ['if', 'while', 'for', 'do', 'switch', 'catch'].includes(token);
 }

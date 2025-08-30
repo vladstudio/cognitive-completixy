@@ -71,7 +71,7 @@ function updateComplexity() {
   const complexity = calculateCognitiveComplexity(editor.document.getText());
   const level = getComplexityLevel(complexity);
   
-  statusBarItem.text = `$(pulse) CC: ${complexity} (${level})`;
+  statusBarItem.text = `CC ${complexity} ${level}`;
   statusBarItem.color = undefined;
   statusBarItem.tooltip = `Cognitive Complexity: ${complexity} - ${level}`;
   statusBarItem.show();
@@ -82,11 +82,11 @@ function isSupportedLanguage(languageId: string): boolean {
 }
 
 function getComplexityLevel(complexity: number): string {
-  if (complexity <= 5) return 'Very Low';
-  if (complexity <= 10) return 'Low';
-  if (complexity <= 20) return 'Moderate';
-  if (complexity <= 50) return 'High';
-  return 'Very High';
+  if (complexity <= 5) return '';
+  if (complexity <= 10) return '$(circle-large-filled)';
+  if (complexity <= 20) return '$(circle-large-filled)$(circle-large-filled)';
+  if (complexity <= 50) return '$(circle-large-filled)$(circle-large-filled)$(circle-large-filled)';
+  return '$(circle-large-filled)$(circle-large-filled)$(circle-large-filled)$(circle-large-filled)';
 }
 
 function toggleHints() {
