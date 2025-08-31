@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 function debounceUpdate() {
   if (timeout) clearTimeout(timeout);
-  timeout = setTimeout(updateComplexity, 300);
+  timeout = setTimeout(updateComplexity, 700);
 }
 
 function updateComplexity() {
@@ -82,11 +82,12 @@ function isSupportedLanguage(languageId: string): boolean {
 }
 
 function getComplexityLevel(complexity: number): string {
+  const icon = '$(circle-large-filled)';
   if (complexity <= 5) return '';
-  if (complexity <= 10) return '$(circle-large-filled)';
-  if (complexity <= 20) return '$(circle-large-filled)$(circle-large-filled)';
-  if (complexity <= 50) return '$(circle-large-filled)$(circle-large-filled)$(circle-large-filled)';
-  return '$(circle-large-filled)$(circle-large-filled)$(circle-large-filled)$(circle-large-filled)';
+  if (complexity <= 10) return icon;
+  if (complexity <= 20) return icon.repeat(2);
+  if (complexity <= 50) return icon.repeat(3);
+  return icon.repeat(4);
 }
 
 function toggleHints() {
