@@ -12,7 +12,7 @@
   "homepage": "https://vlad.studio",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/vladstudio/cognitive-completixy"
   },
   "keywords": ["cognitive", "complexity", "analysis", "code quality", "metrics", "javascript", "typescript", "linter"],
   "icon": "logo.png",
@@ -20,7 +20,7 @@
     "vscode": "^1.74.0"
   },
   "categories": ["Linters"],
-  "activationEvents": ["onLanguage:javascript", "onLanguage:typescript"],
+  "activationEvents": ["onLanguage:javascript", "onLanguage:typescript", "onLanguage:javascriptreact", "onLanguage:typescriptreact"],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
