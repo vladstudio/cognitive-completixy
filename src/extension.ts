@@ -108,29 +108,41 @@ function showHints() {
   const warningDecorations: vscode.DecorationOptions[] = [];
   const errorDecorations: vscode.DecorationOptions[] = [];
 
+  // Group contributions by line
+  const contributionsByLine = new Map<number, ComplexityContribution[]>();
   for (const contribution of analysis.contributions) {
-    const lineText = editor.document.lineAt(contribution.line).text;
+    if (!contributionsByLine.has(contribution.line)) {
+      contributionsByLine.set(contribution.line, []);
+    }
+    contributionsByLine.get(contribution.line)!.push(contribution);
+  }
+
+  for (const [lineNum, contributions] of contributionsByLine) {
+    const lineText = editor.document.lineAt(lineNum).text;
     const lineEnd = lineText.length;
     
-    const range = new vscode.Range(
-      contribution.line,
-      lineEnd,
-      contribution.line,
-      lineEnd
-    );
+    const range = new vscode.Range(lineNum, lineEnd, lineNum, lineEnd);
+    
+    // Format multiple contributions with commas
+    const descriptions = contributions.map(c => c.description);
+    const contentText = descriptions.length > 1 
+      ? ` ${descriptions.join(', ')}`
+      : ` ${descriptions[0]}`;
 
     const decoration: vscode.DecorationOptions = {
       range,
       renderOptions: {
         after: {
-          contentText: ` // ${contribution.description}`
+          contentText
         }
       }
     };
 
-    if (contribution.contribution === 1) {
+    // Use the highest contribution level for the decoration color
+    const maxContribution = Math.max(...contributions.map(c => c.contribution));
+    if (maxContribution === 1) {
       infoDecorations.push(decoration);
-    } else if (contribution.contribution <= 3) {
+    } else if (maxContribution <= 3) {
       warningDecorations.push(decoration);
     } else {
       errorDecorations.push(decoration);

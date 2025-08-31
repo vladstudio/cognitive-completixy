@@ -16,85 +16,121 @@ export function analyzeCognitiveComplexity(code: string): {
   let complexity = 0;
   let nestingLevel = 0;
   const contributions: ComplexityContribution[] = [];
-  const lines = code.split('\n');
   
   const tokens = tokenizeWithPositions(code);
   
   for (let i = 0; i < tokens.length; i++) {
     const { token, line, column } = tokens[i];
     const prevToken = tokens[i - 1]?.token;
+    const nextToken = tokens[i + 1]?.token;
     let contribution = 0;
     let description = '';
+    let incrementsNesting = false;
     
     switch (token) {
       case 'if':
+        contribution = 1 + nestingLevel;
+        description = nestingLevel === 0 
+          ? `+${contribution} if statement`
+          : `+${contribution} nested if statement (nesting=${nestingLevel})`;
+        complexity += contribution;
+        incrementsNesting = true;
+        break;
+        
+      case 'else':
+        if (nextToken === 'if') {
+          // else if - hybrid increment (no nesting penalty)
+          contribution = 1;
+          description = `+${contribution} else if statement`;
+          complexity += contribution;
+          incrementsNesting = true;
+          i++; // Skip the 'if' token
+        } else {
+          // else - hybrid increment (no nesting penalty) 
+          contribution = 1;
+          description = `+${contribution} else statement`;
+          complexity += contribution;
+          incrementsNesting = true;
+        }
+        break;
+        
       case 'while':
       case 'for':
       case 'do':
         contribution = 1 + nestingLevel;
         description = nestingLevel === 0 
-          ? `+${contribution} ${token} statement`
-          : `+${contribution} nested ${token} statement`;
+          ? `+${contribution} ${token} loop`
+          : `+${contribution} nested ${token} loop (nesting=${nestingLevel})`;
         complexity += contribution;
-        break;
-        
-      case 'else':
-        const nextToken = tokens[i + 1]?.token;
-        if (nextToken !== 'if') {
-          contribution = 1;
-          description = `+${contribution} else statement`;
-          complexity += contribution;
-        }
+        incrementsNesting = true;
         break;
         
       case 'catch':
         contribution = 1 + nestingLevel;
         description = nestingLevel === 0 
           ? `+${contribution} catch block`
-          : `+${contribution} nested catch block`;
+          : `+${contribution} nested catch block (nesting=${nestingLevel})`;
         complexity += contribution;
+        incrementsNesting = true;
         break;
         
       case 'switch':
         contribution = 1 + nestingLevel;
         description = nestingLevel === 0 
           ? `+${contribution} switch statement`
-          : `+${contribution} nested switch statement`;
+          : `+${contribution} nested switch statement (nesting=${nestingLevel})`;
         complexity += contribution;
-        break;
-        
-      case 'case':
-        break;
-        
-      case '&&':
-        contribution = 1;
-        description = `+${contribution} && operator`;
-        complexity += contribution;
-        break;
-        
-      case '||':
-        contribution = 1;
-        description = `+${contribution} || operator`;
-        complexity += contribution;
+        incrementsNesting = true;
         break;
         
       case '?':
-        contribution = 1;
-        description = `+${contribution} ternary operator`;
+        contribution = 1 + nestingLevel;
+        description = nestingLevel === 0 
+          ? `+${contribution} ternary operator`
+          : `+${contribution} nested ternary operator (nesting=${nestingLevel})`;
         complexity += contribution;
+        incrementsNesting = true;
+        break;
+        
+      case '&&':
+      case '||':
+        // Check if this starts a new sequence of logical operators
+        if (prevToken !== '&&' && prevToken !== '||') {
+          contribution = 1;
+          description = `+${contribution} logical operator sequence`;
+          complexity += contribution;
+        }
         break;
         
       case '{':
-        if (isNestingToken(prevToken)) nestingLevel++;
+        if (incrementsNesting || (prevToken && isNestingToken(prevToken))) {
+          nestingLevel++;
+        }
         break;
         
       case '}':
         if (nestingLevel > 0) nestingLevel--;
         break;
+        
+      case 'goto':
+      case 'break':
+      case 'continue':
+        // Only increment for labeled jumps or multi-level jumps
+        if (nextToken && (isLabel(nextToken) || isNumber(nextToken))) {
+          contribution = 1;
+          description = `+${contribution} jump to ${nextToken}`;
+          complexity += contribution;
+        }
+        break;
     }
     
     if (contribution > 0) {
       contributions.push({ line, column, contribution, description });
+    }
+    
+    // Reset incrementsNesting flag after processing braces
+    if (token !== '{' && token !== '}') {
+      incrementsNesting = false;
     }
   }
   
@@ -109,25 +145,33 @@ interface TokenWithPosition {
 
 function tokenizeWithPositions(code: string): TokenWithPosition[] {
   const tokens: TokenWithPosition[] = [];
-  const lines = code.split('\n');
-  const regex = /\b(?:if|else|while|for|do|switch|case|catch|function)\b|[{}]|&&|\|\||\?|:/g;
+  
+  // Remove comments and strings 
+  let cleanCode = code
+    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multiline comments
+    .replace(/\/\/.*$/gm, '') // Remove single-line comments
+    .replace(/"(?:[^"\\]|\\.)*"/g, '') // Remove double-quoted strings
+    .replace(/'(?:[^'\\]|\\.)*'/g, '') // Remove single-quoted strings
+    .replace(/`(?:[^`\\]|\\.)*`/g, ''); // Remove template literals
+  
+  const lines = cleanCode.split('\n');
+  
+  // Updated regex to capture all required tokens
+  const regex = /\b(?:if|else|while|for|do|switch|case|catch|try|finally|goto|break|continue|function)\b|[{}]|&&|\|\||(?<!\?)(\?)(?!\?|\.)|:/g;
   
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-    let line = lines[lineIndex];
-    
-    // Remove comments and strings for this line
-    line = line
-      .replace(/\/\*.*?\*\//g, '')
-      .replace(/\/\/.*$/, '')
-      .replace(/"[^"]*"/g, '')
-      .replace(/'[^']*'/g, '')
-      .replace(/`[^`]*`/g, '');
+    const line = lines[lineIndex];
     
     let match;
     while ((match = regex.exec(line)) !== null) {
+      // Skip 'case' and 'try'/'finally' as they don't increment complexity
+      if (match[0] === 'case' || match[0] === 'try' || match[0] === 'finally') {
+        continue;
+      }
+      
       tokens.push({
         token: match[0],
-        line: lineIndex,
+        line: lineIndex + 1, // 1-based line numbers
         column: match.index
       });
     }
@@ -137,7 +181,15 @@ function tokenizeWithPositions(code: string): TokenWithPosition[] {
   return tokens;
 }
 
-
 function isNestingToken(token: string): boolean {
-  return ['if', 'while', 'for', 'do', 'switch', 'catch'].includes(token);
+  return ['if', 'else', 'while', 'for', 'do', 'switch', 'catch'].includes(token);
+}
+
+function isLabel(token: string): boolean {
+  // Simple heuristic: labels are typically alphanumeric identifiers
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token);
+}
+
+function isNumber(token: string): boolean {
+  return /^\d+$/.test(token);
 }
