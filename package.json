@@ -2,7 +2,7 @@
   "name": "cognitive-complexity",
   "displayName": "Cognitive Complexity",
   "description": "Display cognitive complexity of active file in status bar",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "Vladstudio",
   "author": {
     "name": "Vlad Gerasimov",
@@ -14,13 +14,29 @@
     "type": "git",
     "url": "https://github.com/vladstudio/cognitive-completixy"
   },
-  "keywords": ["cognitive", "complexity", "analysis", "code quality", "metrics", "javascript", "typescript", "linter"],
+  "keywords": [
+    "cognitive",
+    "complexity",
+    "analysis",
+    "code quality",
+    "metrics",
+    "javascript",
+    "typescript",
+    "linter"
+  ],
   "icon": "logo.png",
   "engines": {
     "vscode": "^1.74.0"
   },
-  "categories": ["Linters"],
-  "activationEvents": ["onLanguage:javascript", "onLanguage:typescript", "onLanguage:javascriptreact", "onLanguage:typescriptreact"],
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
